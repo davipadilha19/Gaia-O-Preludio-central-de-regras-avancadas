@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaia: O Prelúdio — Central de Consulta Oficial</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gaia: {
+                            50: '#fdf8f6',
+                            100: '#fbe8e6',
+                            200: '#f5d3cf',
+                            300: '#ebb2ab',
+                            400: '#df8277',
+                            500: '#d1584a',
+                            600: '#bc4033',
+                            700: '#9e3328',
+                            800: '#812d24',
+                            900: '#6b2923',
+                            950: '#3a1310',
+                        }
+                    },
+                    fontFamily: {
+                        cinzel: ['Cinzel', 'serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen antialiased selection:bg-gaia-500 selection:text-white" x-data="gaiaApp()">
+
+    <!-- App Wrapper -->
+    <div class="flex h-screen overflow-hidden">
+
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col justify-between hidden md:flex z-20">
+            <div>
+                <!-- Brand -->
+                <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gaia-500 to-gaia-700 flex items-center justify-center shadow-lg shadow-gaia-500/20">
+                        <i class="fa-solid fa-dice-d20 text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-cinzel font-bold text-lg text-slate-100 tracking-wider">GAIA</h1>
+                        <p class="text-xs text-gaia-400 font-medium uppercase tracking-widest">O Prelúdio</p>
+                    </div>
+                </div>
+
+                <!-- Nav Links -->
+                <nav class="p-4 space-y-1.5">
+                    <template x-for="tab in tabs" :key="tab.id">
+                        <button @click="activeTab = tab.id"
+                            :class="activeTab === tab.id ? 'bg-gaia-600 text-white shadow-lg shadow-gaia-600/30 font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-left text-sm">
+                            <i :class="tab.icon" class="w-5 text-center"></i>
+                            <span x-text="tab.name"></span>
+                        </button>
+                    </template>
+                </nav>
+            </div>
+
+            <!-- Sidebar Footer Status -->
+            <div class="p-4 border-t border-slate-800">
+                <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="text-xs text-slate-400 font-medium">Sistema Online</span>
+                    </div>
+                    <span class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">v2.4</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-950">
+            
+            <!-- TOP BAR -->
+            <header class="h-20 bg-slate-900/80 backdrop-blur border-b border-slate-800 px-6 flex items-center justify-between z-10">
+                <!-- Mobile Menu & Title -->
+                <div class="flex items-center gap-4">
+                    <div class="md:hidden w-9 h-9 rounded-lg bg-gaia-600 flex items-center justify-center text-white">
+                        <i class="fa-solid fa-dice-d20"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-cinzel font-bold text-xl text-slate-100 uppercase tracking-wide" x-text="getCurrentTabName()"></h2>
+                        <p class="text-xs text-slate-400 hidden sm:block">Guia Oficial de Consulta Interativa para Jogadores e Narrador</p>
+                    </div>
+                </div>
+
+                <!-- Search Bar & Quick Tools -->
+                <div class="flex items-center gap-3">
+                    <div class="relative w-48 sm:w-80">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-search text-sm"></i>
+                        </span>
+                        <input type="text" x-model="searchQuery" placeholder="Pesquisar regras, status, combates..." 
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-gaia-500 transition-all shadow-inner">
+                        <button x-show="searchQuery" @click="searchQuery = ''" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
+                    </div>
+
+                    <button @click="activeTab = 'calculadora'" class="hidden sm:flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700/80 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-200 transition">
+                        <i class="fa-solid fa-calculator text-gaia-400"></i>
+                        <span>Calculadora</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- SCROLLABLE VIEWPORT -->
+            <div class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+
+                <!-- GLOBAL SEARCH RESULTS BANNER (When typing) -->
+                <div x-show="searchQuery.trim().length > 0" x-cloak class="bg-slate-900 border border-gaia-500/30 rounded-2xl p-6 shadow-xl mb-6">
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
+                        <h3 class="font-cinzel font-bold text-gaia-400 flex items-center gap-2">
+                            <i class="fa-solid fa-filter"></i> Resultados para: "<span x-text="searchQuery"></span>"
+                        </h3>
+                        <span class="text-xs text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full" x-text="filteredItemsCount + ' itens encontrados'"></span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <template x-for="item in globalSearchResults" :key="item.title">
+                            <div @click="selectSearchResult(item.tab)" class="bg-slate-950/60 border border-slate-800/80 hover:border-gaia-500/50 p-4 rounded-xl cursor-pointer transition group">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-gaia-400 bg-gaia-950 px-2 py-0.5 rounded border border-gaia-900 mb-2 inline-block" x-text="item.category"></span>
+                                <h4 class="font-bold text-slate-200 group-hover:text-gaia-300 transition text-sm" x-text="item.title"></h4>
+                                <p class="text-xs text-slate-400 mt-1 line-clamp-2" x-text="item.snippet"></p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- TAB 1: CRIAÇÃO DE PERSONAGEM -->
+                <div x-show="activeTab === 'criacao'" x-transition.opacity class="space-y-6">
+                    <div class="bg-gradient-to-r from-slate-900 to-slate-900/90 border border-slate-800 rounded-2xl p-6 lg:p-8 shadow-xl">
+                        <span class="text-xs font-bold uppercase tracking-widest text-gaia-400 bg-gaia-950/80 px-3 py-1 rounded-full border border-gaia-900 inline-block mb-3">Passo a Passo</span>
+                        <h3 class="font-cinzel font-bold text-2xl text-slate-100 mb-3">Os 3 Pilares da Criação de Personagem</h3>
+                        <p class="text-slate-400 text-sm max-w-3xl leading-relaxed">A construção do seu herói em Gaia: O Prelúdio é flexível, permitindo criar desde arquétipos clássicos até conceitos audaciosos e surpreendentes.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg flex flex-col justify-between">
+                            <div>
+                                <div class="w-12 h-12 rounded-xl bg-gaia-950 border border-gaia-900 flex items-center justify-center text-gaia-400 mb-4 text-xl">
+                                    <i class="fa-solid fa-compass"></i>
+                                </div>
+                                <h4 class="font-cinzel font-bold text-lg text-slate-100 mb-2">1. Conceito</h4>
+                                <p class="text-slate-400 text-sm leading-relaxed">Define a identidade e temática do herói. Exemplo: <span class="text-slate-200 italic">"Quero um personagem forte e bruto, mas com conhecimentos profundos de exploração e sobrevivência"</span>.</p>
+                            </div>
+                            <div class="mt-6 pt-4 border-t border-slate-800 text-xs text-gaia-400 font-medium">Define parâmetros e perícias</div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg flex flex-col justify-between">
+                            <div>
+                                <div class="w-12 h-12 rounded-xl bg-gaia-950 border border-gaia-900 flex items-center justify-center text-gaia-400 mb-4 text-xl">
+                                    <i class="fa-solid fa-swords"></i>
+                                </div>
+                                <h4 class="font-cinzel font-bold text-lg text-slate-100 mb-2">2. Combate</h4>
+                                <p class="text-slate-400 text-sm leading-relaxed">Foco em como desferir golpes letais e certeiros. No Nível 1, você escolhe livremente <span class="text-slate-200 font-semibold">2 Habilidades</span> de qualquer Caminho de Combate.</p>
+                            </div>
+                            <div class="mt-6 pt-4 border-t border-slate-800 text-xs text-gaia-400 font-medium">Estilo tático inicial</div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg flex flex-col justify-between">
+                            <div>
+                                <div class="w-12 h-12 rounded-xl bg-gaia-950 border border-gaia-900 flex items-center justify-center text-gaia-400 mb-4 text-xl">
+                                    <i class="fa-solid fa-dragon"></i>
+                                </div>
+                                <h4 class="font-cinzel font-bold text-lg text-slate-100 mb-2">3. Linhagem (Legado)</h4>
+                                <p class="text-slate-400 text-sm leading-relaxed">A raça e origem do personagem. São mais de <span class="text-slate-200 font-semibold">20 Legados</span> com variações. Permite contrastes criativos (ex: seres minúsculos com força avassaladora).</p>
+                            </div>
+                            <div class="mt-6 pt-4 border-t border-slate-800 text-xs text-gaia-400 font-medium">+20 opções disponíveis</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: PARÂMETROS E ATRIBUTOS -->
+                <div x-show="activeTab === 'parametros'" x-transition.opacity class="space-y-6" x-cloak>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-widest text-gaia-400 bg-gaia-950/80 px-3 py-1 rounded-full border border-gaia-900 inline-block mb-3">Atributos Base</span>
+                            <h3 class="font-cinzel font-bold text-2xl text-slate-100 mb-2">Distribuição de Parâmetros</h3>
+                            <p class="text-slate-400 text-sm max-w-2xl leading-relaxed">Você possui <span class="text-slate-200 font-semibold">7 pontos</span> iniciais para distribuir. No Nível 1, é proibido colocar mais de <span class="text-slate-200 font-semibold">2 pontos em um mesmo parâmetro</span>.</p>
+                        </div>
+                        <button @click="activeTab = 'calculadora'" class="bg-gaia-600 hover:bg-gaia-500 text-white font-semibold px-5 py-3 rounded-xl text-sm transition shadow-lg shadow-gaia-600/20 flex items-center gap-2 shrink-0">
+                            <i class="fa-solid fa-calculator"></i> Testar na Calculadora
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Físicos -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+                            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+                                <div class="w-10 h-10 rounded-lg bg-blue-950 border border-blue-900 flex items-center justify-center text-blue-400">
+                                    <i class="fa-solid fa-dumbbell"></i>
+                                </div>
+                                <h4 class="font-cinzel font-bold text-lg text-slate-100">Físicos (3)</h4>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                                    <h5 class="font-bold text-slate-200 text-sm">Precisão</h5>
+                                    <p class="text-xs text-slate-400 mt-1">Acertos e pontaria para ataques físicos.</p>
+                                </div>
+                                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                                    <h5 class="font-bold text-slate-200 text-sm">Brutalidade</h5>
+                                    <p class="text-xs text-slate-400 mt-1">Potência e força para causar dano físico bruto.</p>
+                                </div>
+                                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                                    <h5 class="font-bold text-slate-200 text-sm">Destreza</h5>
+                                    <p class="text-xs text-slate-400 mt-1">Técnica e dano refinado com armas leves/técnicas.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mágicos -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+                            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+                                <div class="w-10 h-10 rounded-lg bg-purple-950 border border-purple-900 flex items-center justify-center text-purple-400">
+                                    <i class="fa-solid fa-hat-wizard"></i>
+                                </div>
+                                <h4 class="font-cinzel font-bold text-lg text-slate-100">Mágicos (3)</h4>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                                    <h5 class="font-bold text-slate-200 text-sm">Canalização</h5>
+                                    <p class="text-xs text-slate-400 mt-1">Capacidade de focar mana e acertar magias.</p>
+                                </div>
+                                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                                    <h5 class="font-bold text-slate-200 text-sm">Arcanismo</h5>
+                                    <p class="text-xs text-slate-400 mt-1">Poder, dano mágico e bônus de Energia (PE).</p>
+                                </div>
+                                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                                    <h5 class="font-bold text-slate-200 text-sm">Espírito</h5>
+                                    <p class="text-xs text-slate-400 mt-1">Conexão com a alma, curas e magias espirituais.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gerais -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+                            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+                                <div class="w-10 h-10 rounded-lg bg-emerald-950 border border-emerald-900 flex items-center justify-center text-emerald-400">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                </div>
+                                <h4 class="font-cinzel font-bold text-lg text-slate-100">Gerais (2)</h4>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                                    <h5 class="font-bold text-slate-200 text-sm">Agilidade</h5>
+                                    <p class="text-xs text-slate-400 mt-1">Iniciativa, esquiva de ataques e deslocamento.</p>
+                                </div>
+                                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+                                    <h5 class="font-bold text-slate-200 text-sm">Vigor</h5>
+                                    <p class="text-xs text-slate-400 mt-1">Resistência física, absorção e bônus de Vida (PV).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: CONHECIMENTOS (PERÍCIAS) -->
+                <div x-show="activeTab === 'conhecimentos'" x-transition.opacity class="space-y-6" x-cloak>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 shadow-xl">
+                        <span class="text-xs font-bold uppercase tracking-widest text-gaia-400 bg-gaia-950/80 px-3 py-1 rounded-full border border-gaia-900 inline-block mb-3">Bagagem Cultural</span>
+                        <h3 class="font-cinzel font-bold text-2xl text-slate-100 mb-2">As 12 Áreas de Conhecimento</h3>
+                        <p class="text-slate-400 text-sm max-w-3xl leading-relaxed">Divididas em três frentes de 4 perícias cada, fundamentais para testes narrativos, exploração, interações sociais e resolução de enigmas.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Cognitivos -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+                            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+                                <div class="w-10 h-10 rounded-lg bg-amber-950 border border-amber-900 flex items-center justify-center text-amber-400">
+                                    <i class="fa-solid fa-book-atlas"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-cinzel font-bold text-base text-slate-100">Cognitivos</h4>
+                                    <p class="text-[11px] text-slate-400">Teóricos e acadêmicos</p>
+                                </div>
+                            </div>
+                            <ul class="space-y-2.5 text-xs text-slate-300">
+                                <li class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60"><b>História:</b> Passado e antigas civilizações.</li>
+                                <li class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60"><b>Religião:</b> Divindades, mitos e rituais.</li>
+                                <li class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60"><b>Exploração:</b> Navegação e sobrevivência.</li>
+                                <li class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60"><b>Conhecimento Místico:</b> Runas e arcanismo.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Práticos -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+                            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+                                <div class="w-10 h-10 rounded-lg bg-cyan-950 border border-cyan-900 flex items-center justify-center text-cyan-400">
+                                    <i class="fa-solid fa-hand-fist"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-cinzel font-bold text-base text-slate-100">Práticos</h4>
+                                    <p class="text-[11px] text-slate-400">Treinamento de campo</p>
+                                </div>
+                            </div>
+                            <ul class="space-y-2.5 text-xs text-slate-300">
+                                <li class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60"><b>Furtividade:</b> Mover-se sem ser notado.</li>
+                                <li class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60"><b>Percepção:</b> Notar detalhes e perigos.</li>
+                                <li class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60"><b>Performance:</b> Artes, dança e música.</li>
+                                <li class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60"><b>Tecnologia:</b> Usar e criar ferramentas.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Sociais -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+                            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+                                <div class="w-10 h-10 rounded-lg bg-rose-950 border border-rose-900 flex items-center justify-center text-rose-400">
+                                    <i class="fa-solid fa-comments"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-cinzel font-bold text-base text-slate-100">Sociais</h4>
+                                    <p class="text-[11px] text-slate-400">Interação e empatia</p>
+                                </div>
+                            </div>
+                            <ul class="space-y-2.5 text-xs text-slate-300">
+                                <li class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60"><b>Carisma:</b> Convencer e seduzir.</li>
+                                <li class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60"><b>Intimidação:</b> Coagir e impor respeito.</li>
+                                <li class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60"><b>Intuição:</b> Ler intenções alheias.</li>
+                                <li class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/60"><b>Vontade:</b> Resistência mental e princípios.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: COMBATE E MORTE -->
+                <div x-show="activeTab === 'combate'" x-transition.opacity class="space-y-6" x-cloak>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 shadow-xl">
+                        <span class="text-xs font-bold uppercase tracking-widest text-gaia-400 bg-gaia-950/80 px-3 py-1 rounded-full border border-gaia-900 inline-block mb-3">Tática & Confronto</span>
+                        <h3 class="font-cinzel font-bold text-2xl text-slate-100 mb-2">Mecânicas de Combate</h3>
+                        <p class="text-slate-400 text-sm max-w-3xl leading-relaxed">Entenda a ordem de iniciativa, a estrutura detalhada de ações por turno e como funcionam os embates diretos.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+                            <h4 class="font-cinzel font-bold text-lg text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-bolt text-gaia-400"></i> Iniciativa & Turnos
+                            </h4>
+                            <div class="space-y-3 text-sm text-slate-300">
+                                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                                    <b class="text-slate-100">Iniciativa:</b> Rola-se <span class="text-gaia-400 font-mono">1D20 + Agilidade</span>. Do maior para o menor valor. Empates exigem nova rolagem.
+                                </div>
+                                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                                    <b class="text-slate-100">Ação Ativa:</b> Ação principal (ataque). Armas leves permitem <span class="text-slate-200 font-semibold">2 ataques</span> por ação ativa.
+                                </div>
+                                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                                    <b class="text-slate-100">Ação Simples / Rápida:</b> Usar/trocar itens e reações instantâneas.
+                                </div>
+                                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                                    <b class="text-slate-100">Movimento:</b> Base de 6 quadrados (+1 para cada 2 pontos de Agilidade).
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+                            <h4 class="font-cinzel font-bold text-lg text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-skull text-rose-500"></i> Incapacitação & Morte
+                            </h4>
+                            <div class="space-y-3 text-sm text-slate-300">
+                                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                                    <b class="text-slate-100">0 ou menos PV:</b> O personagem entra em estado de Incapacitado.
+                                </div>
+                                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                                    <b class="text-slate-100">Teste no D12 Puro:</b> No turno, rola um D12 sem modificadores.
+                                    <div class="mt-2 text-xs space-y-1 text-slate-400">
+                                        <p>• <span class="text-emerald-400 font-semibold">2 Sucessos:</span> Vive (-1 em testes e +1 Exaustão).</p>
+                                        <p>• <span class="text-rose-400 font-semibold">2 Falhas:</span> Morte definitiva.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: EVOLUÇÃO E PATAMARES -->
+                <div x-show="activeTab === 'evolucao'" x-transition.opacity class="space-y-6" x-cloak>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 shadow-xl">
+                        <span class="text-xs font-bold uppercase tracking-widest text-gaia-400 bg-gaia-950/80 px-3 py-1 rounded-full border border-gaia-900 inline-block mb-3">Progressão Contínua</span>
+                        <h3 class="font-cinzel font-bold text-2xl text-slate-100 mb-2">Sistema de Evolução e Níveis</h3>
+                        <p class="text-slate-400 text-sm max-w-3xl leading-relaxed">Em Gaia, o personagem evolui organicamente com base em suas aventuras e experiências vividas.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+                            <h4 class="font-cinzel font-bold text-lg text-slate-100">O que ganha ao evoluir:</h4>
+                            <ul class="space-y-3 text-sm text-slate-300">
+                                <li class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 flex items-center justify-center justify-between">
+                                    <span>Pontos de Vida (PV)</span>
+                                    <span class="font-mono font-bold text-emerald-400">+1D6 + mod. Vigor</span>
+                                </li>
+                                <li class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                                    <span>Pontos de Energia (PE)</span>
+                                    <span class="font-mono font-bold text-blue-400">+1D4 + mod. Arcanismo</span>
+                                </li>
+                                <li class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                                    <span>Pontos de Aprendizado (PdA)</span>
+                                    <span class="font-mono font-bold text-purple-400">+1 PdA</span>
+                                </li>
+                                <li class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                                    <span>Atributos</span>
+                                    <span class="font-mono font-bold text-amber-400">+1 Parâmetro & +1 Conhecimento</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-4">
+                            <h4 class="font-cinzel font-bold text-lg text-slate-100">Patamares de Poder (Classes)</h4>
+                            <div class="space-y-2.5 text-sm">
+                                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 flex justify-between items-center">
+                                    <span class="font-bold text-slate-100">Nível 1</span>
+                                    <span class="text-gaia-400 font-semibold">Novato</span>
+                                </div>
+                                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 flex justify-between items-center">
+                                    <span class="font-bold text-slate-100">Níveis 2 – 9</span>
+                                    <span class="text-blue-400 font-semibold">Aventureiro</span>
+                                </div>
+                                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 flex justify-between items-center">
+                                    <span class="font-bold text-slate-100">Níveis 10 – 18</span>
+                                    <span class="text-purple-400 font-semibold">Veterano</span>
+                                </div>
+                                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 flex justify-between items-center">
+                                    <span class="font-bold text-slate-100">Níveis 19 – 24</span>
+                                    <span class="text-amber-400 font-semibold">Herói</span>
+                                </div>
+                                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 flex justify-between items-center">
+                                    <span class="font-bold text-slate-100">Nível 25+</span>
+                                    <span class="text-rose-400 font-semibold">Lenda</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 6: CALCULADORA INTERATIVA -->
+                <div x-show="activeTab === 'calculadora'" x-transition.opacity class="space-y-6" x-cloak>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 lg:p-8 shadow-xl">
+                        <span class="text-xs font-bold uppercase tracking-widest text-gaia-400 bg-gaia-950/80 px-3 py-1 rounded-full border border-gaia-900 inline-block mb-3">Ferramenta de Mesa</span>
+                        <h3 class="font-cinzel font-bold text-2xl text-slate-100 mb-2">Calculadora de Status Iniciais</h3>
+                        <p class="text-slate-400 text-sm max-w-3xl leading-relaxed">Insira os modificadores de Vigor e Arcanismo do seu personagem para calcular instantaneamente sua Vida (PV) e Energia (PE) iniciais no Nível 1.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Inputs -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-6">
+                            <h4 class="font-cinzel font-bold text-lg text-slate-100 pb-3 border-b border-slate-800">Parâmetros Base</h4>
+                            
+                            <div class="space-y-2">
+                                <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Modificador de Vigor:</label>
+                                <div class="flex items-center gap-4">
+                                    <input type="range" min="-3" max="10" x-model.number="vigMod" class="w-full accent-gaia-500 bg-slate-950 h-2 rounded-lg cursor-pointer">
+                                    <span class="font-mono font-bold text-lg text-gaia-400 w-10 text-right" x-text="vigMod >= 0 ? '+' + vigMod : vigMod"></span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Modificador de Arcanismo:</label>
+                                <div class="flex items-center gap-4">
+                                    <input type="range" min="-3" max="10" x-model.number="arcMod" class="w-full accent-blue-500 bg-slate-950 h-2 rounded-lg cursor-pointer">
+                                    <span class="font-mono font-bold text-lg text-blue-400 w-10 text-right" x-text="arcMod >= 0 ? '+' + arcMod : arcMod"></span>
+                                </div>
+                            </div>
+
+                            <button @click="vigMod = 0; arcMod = 0" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold py-2.5 rounded-xl transition border border-slate-700">
+                                Resetar Valores
+                            </button>
+                        </div>
+
+                        <!-- Results Card -->
+                        <div class="bg-gradient-to-br from-slate-900 to-slate-950 border border-gaia-500/30 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
+                            <div>
+                                <h4 class="font-cinzel font-bold text-lg text-slate-100 pb-3 border-b border-slate-800 mb-6">Resultado do Cálculo (Nível 1)</h4>
+                                
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-center">
+                                        <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Pontos de Vida</p>
+                                        <p class="text-3xl font-extrabold text-emerald-400 font-mono" x-text="30 + vigMod"></p>
+                                        <p class="text-[10px] text-slate-500 mt-1">30 + (Mod. Vigor)</p>
+                                    </div>
+
+                                    <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-center">
+                                        <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Pontos de Energia</p>
+                                        <p class="text-3xl font-extrabold text-blue-400 font-mono" x-text="5 + arcMod"></p>
+                                        <p class="text-[10px] text-slate-500 mt-1">5 + (Mod. Arcanismo)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 pt-4 border-t border-slate-800 text-xs text-slate-400 text-center">
+                                <i class="fa-solid fa-circle-info text-gaia-400 mr-1"></i> Calculado instantaneamente com base nas Regras da Mesa.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- FOOTER -->
+            <footer class="h-16 bg-slate-900 border-t border-slate-800 px-6 flex items-center justify-between text-xs text-slate-400 shrink-0">
+                <span>Gaia: O Prelúdio — Central de Consulta Oficial</span>
+                <span class="hidden sm:inline">Desenvolvido para Mestres e Jogadores</span>
+            </footer>
+        </main>
+    </div>
+
+    <!-- MOBILE BOTTOM NAVIGATION (Responsive) -->
+    <div class="md:hidden fixed bottom-0 inset-x-0 bg-slate-900 border-t border-slate-800 flex justify-around p-3 z-30">
+        <template x-for="tab in tabs.slice(0, 5)" :key="tab.id">
+            <button @click="activeTab = tab.id"
+                :class="activeTab === tab.id ? 'text-gaia-500 bg-slate-950' : 'text-slate-400'"
+                class="flex flex-col items-center p-2 rounded-xl text-xs transition">
+                <i :class="tab.icon" class="text-lg mb-1"></i>
+                <span class="text-[10px]" x-text="tab.name.split(' ')[0]"></span>
+            </button>
+        </template>
+    </div>
+
+    <!-- ALPINE APP LOGIC -->
+    <script>
+        function gaiaApp() {
+            return {
+                activeTab: 'criacao',
+                searchQuery: '',
+                vigMod: 0,
+                arcMod: 0,
+                tabs: [
+                    { id: 'criacao', name: 'Criação', icon: 'fa-solid fa-user-plus' },
+                    { id: 'parametros', name: 'Parâmetros', icon: 'fa-solid fa-chart-bar' },
+                    { id: 'conhecimentos', name: 'Conhecimentos', icon: 'fa-solid fa-book-open' },
+                    { id: 'combate', name: 'Combate & Morte', icon: 'fa-solid fa-swords' },
+                    { id: 'evolucao', name: 'Evolução', icon: 'fa-solid fa-arrow-trend-up' },
+                    { id: 'calculadora', name: 'Calculadora', icon: 'fa-solid fa-calculator' }
+                ],
+                searchDatabase: [
+                    { title: 'Criação de Personagem', category: 'Criação', tab: 'criacao', snippet: 'Os 3 pilares: Conceito, Combate e Linhagem (Legado).' },
+                    { title: 'Parâmetros Físicos e Mágicos', category: 'Parâmetros', tab: 'parametros', snippet: 'Precisão, Brutalidade, Destreza, Canalização, Arcanismo, Espírito, Agilidade e Vigor.' },
+                    { title: '12 Áreas de Conhecimento', category: 'Conhecimentos', tab: 'conhecimentos', snippet: 'Cognitivos, Práticos e Sociais. Perícias e regras de distribuição.' },
+                    { title: 'Iniciativa e Turnos', category: 'Combate', tab: 'combate', snippet: 'D20 + Agilidade, Ação Ativa, Simples, Rápida e Movimento.' },
+                    { title: 'Incapacitação e Morte', category: 'Combate', tab: 'combate', snippet: '0 PV ou menos, teste de D12 puro para sobrevivência.' },
+                    { title: 'Evolução de Nível', category: 'Evolução', tab: 'evolucao', snippet: '+1D6 PV, +1D4 PE, +1 PdA e bônus a cada 3 níveis.' },
+                    { title: 'Patamares de Poder', category: 'Evolução', tab: 'evolucao', snippet: 'Novato, Aventureiro, Veterano, Herói e Lenda.' },
+                    { title: 'Calculadora de Status', category: 'Ferramenta', tab: 'calculadora', snippet: 'Simule seus pontos de Vida e Energia iniciais com modificadores.' }
+                ],
+                get globalSearchResults() {
+                    if (!this.searchQuery.trim()) return [];
+                    const q = this.searchQuery.toLowerCase();
+                    return this.searchDatabase.filter(item => 
+                        item.title.toLowerCase().includes(q) || 
+                        item.snippet.toLowerCase().includes(q) ||
+                        item.category.toLowerCase().includes(q)
+                    );
+                },
+                get filteredItemsCount() {
+                    return this.globalSearchResults.length;
+                },
+                getCurrentTabName() {
+                    const current = this.tabs.find(t => t.id === this.activeTab);
+                    return current ? current.name : 'Painel';
+                },
+                selectSearchResult(tabId) {
+                    this.activeTab = tabId;
+                    this.searchQuery = '';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
